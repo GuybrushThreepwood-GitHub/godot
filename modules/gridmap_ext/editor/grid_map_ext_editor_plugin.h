@@ -68,6 +68,12 @@ class GridMapExtEditor : public VBoxContainer {
 		DISPLAY_LIST
 	};
 
+	enum PaintMode {
+		PAINTMODE_NORMAL,
+		PAINTMODE_PROPERTY,
+		PAINTMODE_SELECTION
+	};
+
 	InputAction input_action = INPUT_NONE;
 	Panel *panel = nullptr;
 	MenuButton *options = nullptr;
@@ -117,6 +123,7 @@ class GridMapExtEditor : public VBoxContainer {
 	RID cursor_property_instance;
 	Ref<BoxMesh> cursor_property_mesh;
 	Ref<StandardMaterial3D> cursor_property_mat;
+	PaintMode paintMode = PAINTMODE_NORMAL;
 
 	struct ClipboardItem {
 		int cell_item = 0;
@@ -184,7 +191,9 @@ class GridMapExtEditor : public VBoxContainer {
 		MENU_OPTION_GRIDMAP_SETTINGS,
 
 		MENU_OPTION_PRINT_COORDS,
-
+		MENU_OPTION_PAINTMODE_NORMAL,
+		MENU_OPTION_PAINTMODE_PROPERTY,
+		MENU_OPTION_PAINTMODE_SELECTION,
 	};
 
 	Node3DEditorPlugin *spatial_editor = nullptr;

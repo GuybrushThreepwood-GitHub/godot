@@ -245,6 +245,44 @@ void GridMapExtEditor::_menu_option(int p_option) {
 			else
 				grid_coordinates->hide();
 		} break;
+		case MENU_OPTION_PAINTMODE_NORMAL: {
+			int idxNorm = options->get_popup()->get_item_index(MENU_OPTION_PAINTMODE_NORMAL);
+			int idxProp = options->get_popup()->get_item_index(MENU_OPTION_PAINTMODE_PROPERTY);
+
+			options->get_popup()->set_item_checked(idxNorm, true);
+			options->get_popup()->set_item_checked(idxProp, false);
+
+			paintMode = PAINTMODE_NORMAL;
+			if (cursor_property_instance.is_valid()) {
+				RenderingServer::get_singleton()->instance_set_transform(cursor_property_instance, cursor_transform);
+				RenderingServer::get_singleton()->instance_set_visible(cursor_property_instance, false);
+			}
+			mesh_library_palette->show();
+			_update_cursor_instance();
+		} break;
+		case MENU_OPTION_PAINTMODE_PROPERTY: {
+			int idxNorm = options->get_popup()->get_item_index(MENU_OPTION_PAINTMODE_NORMAL);
+			int idxProp = options->get_popup()->get_item_index(MENU_OPTION_PAINTMODE_PROPERTY);
+
+			options->get_popup()->set_item_checked(idxNorm, false);
+			options->get_popup()->set_item_checked(idxProp, true);
+
+			paintMode = PAINTMODE_PROPERTY;
+			if (cursor_property_instance.is_valid()) {
+				RenderingServer::get_singleton()->instance_set_transform(cursor_property_instance, cursor_transform);
+				RenderingServer::get_singleton()->instance_set_visible(cursor_property_instance, true);
+			}
+
+			selected_palette = -1;
+			mesh_library_palette->deselect_all();
+			if (cursor_property_instance.is_valid()) {
+				RenderingServer::get_singleton()->instance_set_visible(cursor_property_instance, false);
+			}
+			mesh_library_palette->hide();
+			update_palette();
+
+			_update_cursor_instance();
+		} break;
 	}
 }
 
@@ -261,14 +299,16 @@ void GridMapExtEditor::_update_cursor_transform() {
 		}
 	}
 
-	if (cursor_instance.is_valid()) {
-		RenderingServer::get_singleton()->instance_set_transform(cursor_instance, cursor_transform);
-		RenderingServer::get_singleton()->instance_set_visible(cursor_instance, cursor_visible);
-	}
-
-	if (cursor_property_instance.is_valid()) {
-		RenderingServer::get_singleton()->instance_set_transform(cursor_property_instance, cursor_transform);
-		RenderingServer::get_singleton()->instance_set_visible(cursor_property_instance, cursor_visible);
+	if (paintMode == PAINTMODE_NORMAL) {
+		if (cursor_instance.is_valid()) {
+			RenderingServer::get_singleton()->instance_set_transform(cursor_instance, cursor_transform);
+			RenderingServer::get_singleton()->instance_set_visible(cursor_instance, cursor_visible);
+		}
+	} else if (paintMode == PAINTMODE_PROPERTY) {
+		if (cursor_property_instance.is_valid()) {
+			RenderingServer::get_singleton()->instance_set_transform(cursor_property_instance, cursor_transform);
+			RenderingServer::get_singleton()->instance_set_visible(cursor_property_instance, true);
+		}
 	}
 }
 
@@ -353,15 +393,18 @@ bool GridMapExtEditor::do_input_action(Camera3D *p_camera, const Point2 &p_point
 		return false;
 	}
 
-	if (selected_palette < 0 && input_action != INPUT_PICK && input_action != INPUT_SELECT && input_action != INPUT_PASTE) {
-		return false;
-	}
-	Ref<MeshLibrary> mesh_library = node->get_mesh_library();
-	if (mesh_library.is_null()) {
-		return false;
-	}
-	if (input_action != INPUT_PICK && input_action != INPUT_SELECT && input_action != INPUT_PASTE && !mesh_library->has_item(selected_palette)) {
-		return false;
+	if (paintMode == PAINTMODE_NORMAL) {
+		if (selected_palette < 0 && input_action != INPUT_PICK && input_action != INPUT_SELECT && input_action != INPUT_PASTE) {
+			return false;
+		}
+		Ref<MeshLibrary> mesh_library = node->get_mesh_library();
+		if (mesh_library.is_null()) {
+			return false;
+		}
+		if (input_action != INPUT_PICK && input_action != INPUT_SELECT && input_action != INPUT_PASTE && !mesh_library->has_item(selected_palette)) {
+			return false;
+		}
+	} else if (paintMode == PAINTMODE_PROPERTY) {
 	}
 
 	Camera3D *camera = p_camera;
@@ -407,85 +450,119 @@ bool GridMapExtEditor::do_input_action(Camera3D *p_camera, const Point2 &p_point
 
 	RS::get_singleton()->instance_set_transform(grid_instance[edit_axis], node->get_global_transform() * edit_grid_xform);
 
-	if (cursor_instance.is_valid()) {
-		cursor_origin = (Vector3(cell[0], cell[1], cell[2]) + Vector3(0.5 * node->get_center_x(), 0.5 * node->get_center_y(), 0.5 * node->get_center_z())) * node->get_cell_size();
-		cursor_visible = true;
+	cursor_origin = (Vector3(cell[0], cell[1], cell[2]) + Vector3(0.5 * node->get_center_x(), 0.5 * node->get_center_y(), 0.5 * node->get_center_z())) * node->get_cell_size();
+	cursor_visible = true;
 
-		if (input_action == INPUT_SELECT || input_action == INPUT_PASTE) {
-			cursor_visible = false;
-		}
-
-		_update_cursor_transform();
-
-		if (cursor_origin != old_cursor_origin) {
-			int idx = options->get_popup()->get_item_index(MENU_OPTION_PRINT_COORDS);
-			bool printCoords = options->get_popup()->is_item_checked(idx);
-
-			if (printCoords) {
-				Vector3 gridCoords(cell[0], cell[1], cell[2]);
-
-				grid_coordinates->set_text("Current Cell: " + String(gridCoords));
-
-				//EditorNode::get_log()->add_message("Current Cell: " + String(gridCoords), EditorLog::MSG_TYPE_EDITOR);
-			}
-			old_cursor_origin = cursor_origin;
-		}
-
-		
+	if (input_action == INPUT_SELECT || input_action == INPUT_PASTE) {
+		cursor_visible = false;
 	}
 
-	if (input_action == INPUT_PASTE) {
-		paste_indicator.current = Vector3i(cell[0], cell[1], cell[2]);
-		_update_paste_indicator();
+	_update_cursor_transform();
 
-	} else if (input_action == INPUT_SELECT) {
-		selection.current = Vector3i(cell[0], cell[1], cell[2]);
-		if (p_click) {
-			selection.click = selection.current;
+	if (cursor_origin != old_cursor_origin) {
+		int idx = options->get_popup()->get_item_index(MENU_OPTION_PRINT_COORDS);
+		bool printCoords = options->get_popup()->is_item_checked(idx);
+
+		if (printCoords) {
+			Vector3 gridCoords(cell[0], cell[1], cell[2]);
+
+			grid_coordinates->set_text("Current Cell: " + String(gridCoords));
 		}
-		selection.active = true;
-		_validate_selection();
-
-		return true;
-	} else if (input_action == INPUT_PICK) {
-		int item = node->get_cell_item(Vector3i(cell[0], cell[1], cell[2]));
-		if (item >= 0) {
-			selected_palette = item;
-
-			// Clear the filter if picked an item that's filtered out.
-			int index = mesh_library_palette->find_metadata(item);
-			if (index == -1) {
-				search_box->clear();
-			}
-
-			// This will select `selected_palette` in the ItemList when possible.
-			update_palette();
-
-			_update_cursor_instance();
-		}
-		return true;
+		old_cursor_origin = cursor_origin;
 	}
 
-	if (input_action == INPUT_PAINT) {
-		SetItem si;
-		si.position = Vector3i(cell[0], cell[1], cell[2]);
-		si.new_value = selected_palette;
-		si.new_orientation = cursor_rot;
-		si.old_value = node->get_cell_item(Vector3i(cell[0], cell[1], cell[2]));
-		si.old_orientation = node->get_cell_item_orientation(Vector3i(cell[0], cell[1], cell[2]));
-		set_items.push_back(si);
-		node->set_cell_item(Vector3i(cell[0], cell[1], cell[2]), selected_palette, cursor_rot);
-		return true;
-	} else if (input_action == INPUT_ERASE) {
-		SetItem si;
-		si.position = Vector3i(cell[0], cell[1], cell[2]);
-		si.new_value = -1;
-		si.new_orientation = 0;
-		si.old_value = node->get_cell_item(Vector3i(cell[0], cell[1], cell[2]));
-		si.old_orientation = node->get_cell_item_orientation(Vector3i(cell[0], cell[1], cell[2]));
-		set_items.push_back(si);
-		node->set_cell_item(Vector3i(cell[0], cell[1], cell[2]), -1);
-		return true;
+	if (paintMode == PAINTMODE_NORMAL) {
+		if (input_action == INPUT_PASTE) {
+			paste_indicator.current = Vector3i(cell[0], cell[1], cell[2]);
+			_update_paste_indicator();
+
+		} else if (input_action == INPUT_SELECT) {
+			selection.current = Vector3i(cell[0], cell[1], cell[2]);
+			if (p_click) {
+				selection.click = selection.current;
+			}
+			selection.active = true;
+			_validate_selection();
+
+			return true;
+		} else if (input_action == INPUT_PICK) {
+			int item = node->get_cell_item(Vector3i(cell[0], cell[1], cell[2]));
+			if (item >= 0) {
+				selected_palette = item;
+
+				// Clear the filter if picked an item that's filtered out.
+				int index = mesh_library_palette->find_metadata(item);
+				if (index == -1) {
+					search_box->clear();
+				}
+
+				// This will select `selected_palette` in the ItemList when possible.
+				update_palette();
+
+				_update_cursor_instance();
+			}
+			return true;
+		}
+
+		if (input_action == INPUT_PAINT) {
+			SetItem si;
+			si.position = Vector3i(cell[0], cell[1], cell[2]);
+			si.new_value = selected_palette;
+			si.new_orientation = cursor_rot;
+			si.old_value = node->get_cell_item(Vector3i(cell[0], cell[1], cell[2]));
+			si.old_orientation = node->get_cell_item_orientation(Vector3i(cell[0], cell[1], cell[2]));
+			set_items.push_back(si);
+			node->set_cell_item(Vector3i(cell[0], cell[1], cell[2]), selected_palette, cursor_rot);
+			return true;
+		} else if (input_action == INPUT_ERASE) {
+			SetItem si;
+			si.position = Vector3i(cell[0], cell[1], cell[2]);
+			si.new_value = -1;
+			si.new_orientation = 0;
+			si.old_value = node->get_cell_item(Vector3i(cell[0], cell[1], cell[2]));
+			si.old_orientation = node->get_cell_item_orientation(Vector3i(cell[0], cell[1], cell[2]));
+			set_items.push_back(si);
+			node->set_cell_item(Vector3i(cell[0], cell[1], cell[2]), -1);
+			return true;
+		}
+	} else if (paintMode == PAINTMODE_PROPERTY) {
+		if (input_action == INPUT_PASTE) {
+			//paste_indicator.current = Vector3i(cell[0], cell[1], cell[2]);
+			//_update_paste_indicator();
+
+		} else if (input_action == INPUT_SELECT) {
+			selection.current = Vector3i(cell[0], cell[1], cell[2]);
+			if (p_click) {
+				selection.click = selection.current;
+			}
+			selection.active = true;
+			_validate_selection();
+
+			return true;
+		} else if (input_action == INPUT_PICK) {
+			int item = node->get_cell_item(Vector3i(cell[0], cell[1], cell[2]));
+			if (item >= 0) {
+				selected_palette = item;
+
+				// Clear the filter if picked an item that's filtered out.
+				int index = mesh_library_palette->find_metadata(item);
+				if (index == -1) {
+					search_box->clear();
+				}
+
+				// This will select `selected_palette` in the ItemList when possible.
+				update_palette();
+
+				_update_cursor_instance();
+			}
+			return true;
+		}
+
+		if (input_action == INPUT_PAINT) {
+			return true;
+		} else if (input_action == INPUT_ERASE) {
+			return true;
+		}
 	}
 
 	return false;
@@ -661,32 +738,39 @@ EditorPlugin::AfterGUIInput GridMapExtEditor::forward_spatial_input_event(Camera
 			if ((nav_scheme == Node3DEditorViewport::NAVIGATION_MAYA || nav_scheme == Node3DEditorViewport::NAVIGATION_MODO) && mb->is_alt_pressed()) {
 				input_action = INPUT_NONE;
 			} else if (mb->get_button_index() == MouseButton::LEFT) {
-				bool can_edit = (node && node->get_mesh_library().is_valid());
-				if (input_action == INPUT_PASTE) {
-					_do_paste();
-					input_action = INPUT_NONE;
-					_update_paste_indicator();
-				} else if (mb->is_shift_pressed() && can_edit) {
-					input_action = INPUT_SELECT;
-					last_selection = selection;
-				} else if (mb->is_command_or_control_pressed() && can_edit) {
-					input_action = INPUT_PICK;
-				} else {
+				if (paintMode == PAINTMODE_NORMAL) {
+					bool can_edit = (node && node->get_mesh_library().is_valid());
+					if (input_action == INPUT_PASTE) {
+						_do_paste();
+						input_action = INPUT_NONE;
+						_update_paste_indicator();
+					} else if (mb->is_shift_pressed() && can_edit) {
+						input_action = INPUT_SELECT;
+						last_selection = selection;
+					} else if (mb->is_command_or_control_pressed() && can_edit) {
+						input_action = INPUT_PICK;
+					} else {
+						input_action = INPUT_PAINT;
+						set_items.clear();
+					}
+				} else if (paintMode == PAINTMODE_PROPERTY) {
 					input_action = INPUT_PAINT;
 					set_items.clear();
 				}
 			} else if (mb->get_button_index() == MouseButton::RIGHT) {
-				if (input_action == INPUT_PASTE) {
-					_clear_clipboard_data();
-					input_action = INPUT_NONE;
-					_update_paste_indicator();
-					return EditorPlugin::AFTER_GUI_INPUT_STOP;
-				} else if (selection.active) {
-					_set_selection(false);
-					return EditorPlugin::AFTER_GUI_INPUT_STOP;
-				} else {
-					input_action = INPUT_ERASE;
-					set_items.clear();
+				if (paintMode == PAINTMODE_NORMAL) {
+					if (input_action == INPUT_PASTE) {
+						_clear_clipboard_data();
+						input_action = INPUT_NONE;
+						_update_paste_indicator();
+						return EditorPlugin::AFTER_GUI_INPUT_STOP;
+					} else if (selection.active) {
+						_set_selection(false);
+						return EditorPlugin::AFTER_GUI_INPUT_STOP;
+					} else {
+						input_action = INPUT_ERASE;
+						set_items.clear();
+					}
 				}
 			} else {
 				return EditorPlugin::AFTER_GUI_INPUT_PASS;
@@ -969,13 +1053,20 @@ void GridMapExtEditor::edit(GridMapExt *p_gridmap) {
 		for (int i = 0; i < 3; i++) {
 			RenderingServer::get_singleton()->instance_set_visible(grid_instance[i], false);
 		}
-
-		if (cursor_instance.is_valid()) {
-			RenderingServer::get_singleton()->instance_set_visible(cursor_instance, false);
-		}
-
-		if (cursor_property_instance.is_valid()) {
-			RenderingServer::get_singleton()->instance_set_visible(cursor_property_instance, false);
+		if (paintMode == PAINTMODE_NORMAL) {
+			if (cursor_instance.is_valid()) {
+				RenderingServer::get_singleton()->instance_set_visible(cursor_instance, true);
+			}
+			if (cursor_property_instance.is_valid()) {
+				RenderingServer::get_singleton()->instance_set_visible(cursor_property_instance, false);
+			}
+		} else {
+			if (cursor_instance.is_valid()) {
+				RenderingServer::get_singleton()->instance_set_visible(cursor_instance, false);
+			}
+			if (cursor_property_instance.is_valid()) {
+				RenderingServer::get_singleton()->instance_set_visible(cursor_property_instance, true);
+			}
 		}
 		return;
 	}
@@ -1085,9 +1176,9 @@ void GridMapExtEditor::_notification(int p_what) {
 			RenderingServer::get_singleton()->instance_set_layer_mask(paste_instance, 1 << Node3DEditorViewport::MISC_TOOL_LAYER);
 
 			if (!cursor_property_mesh.is_null() && cursor_property_mesh->get_rid().is_valid()) {
-				
 				cursor_property_instance = RenderingServer::get_singleton()->instance_create2(cursor_property_mesh->get_rid(), get_tree()->get_root()->get_world_3d()->get_scenario());
 				RenderingServer::get_singleton()->instance_set_transform(cursor_property_instance, cursor_transform);
+				RenderingServer::get_singleton()->instance_set_visible(cursor_property_instance, false);
 			}
 
 			_update_selection_transform();
@@ -1160,7 +1251,7 @@ void GridMapExtEditor::_update_cursor_instance() {
 	}
 	cursor_instance = RID();
 
-	if (selected_palette >= 0) {
+	if (selected_palette >= 0 && paintMode == PAINTMODE_NORMAL) {
 		if (node && !node->get_mesh_library().is_null()) {
 			Ref<Mesh> mesh = node->get_mesh_library()->get_item_mesh(selected_palette);
 			if (!mesh.is_null() && mesh->get_rid().is_valid()) {
@@ -1266,7 +1357,15 @@ GridMapExtEditor::GridMapExtEditor() {
 
 	options->get_popup()->add_separator();
 	options->get_popup()->add_check_item(TTR("Print grid coords"), MENU_OPTION_PRINT_COORDS);
+	options->get_popup()->add_radio_check_item(TTR("Paint mode normal"), MENU_OPTION_PAINTMODE_NORMAL);
+	options->get_popup()->add_radio_check_item(TTR("Paint mode property"), MENU_OPTION_PAINTMODE_PROPERTY);
 	options->get_popup()->add_separator();
+
+	int idxNorm = options->get_popup()->get_item_index(MENU_OPTION_PAINTMODE_NORMAL);
+	int idxProp = options->get_popup()->get_item_index(MENU_OPTION_PAINTMODE_PROPERTY);
+
+	options->get_popup()->set_item_checked(idxNorm, true);
+	options->get_popup()->set_item_checked(idxProp, false);
 
 	settings_dialog = memnew(ConfirmationDialog);
 	settings_dialog->set_title(TTR("GridMap Settings"));
