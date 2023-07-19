@@ -83,11 +83,11 @@ class GridMapExt : public Node3D {
 	 */
 	struct Cell {
 		//struct {
-			unsigned int item;// : 16;
-			unsigned int rot;// : 5;
-			unsigned int layer;// : 8;
+		unsigned int item; // : 16;
+		unsigned int rot; // : 5;
+		unsigned int layer; // : 8;
 
-			Dictionary data;
+		Dictionary data;
 		//};
 		uint32_t cell = 0;
 	};
@@ -168,6 +168,7 @@ class GridMapExt : public Node3D {
 	bool center_y = true;
 	bool center_z = true;
 	float cell_scale = 1.0;
+	String cell_property = "";
 
 	bool recreating_octants = false;
 
@@ -263,6 +264,9 @@ public:
 
 	void set_cell_size(const Vector3 &p_size);
 	Vector3 get_cell_size() const;
+
+	void set_cell_property(const String &p_property);
+	String get_cell_property() const;
 
 	void set_octant_size(int p_size);
 	int get_octant_size() const;

@@ -66,7 +66,7 @@ bool GridMapExt::_set(const StringName &p_name, const Variant &p_value) {
 			Vector<Variant> cells = d["cells"];
 			int amount = cells.size();
 			cell_map.clear();
-			for (int i = 0; i < amount ; i++) {
+			for (int i = 0; i < amount; i++) {
 				IndexKey ik;
 				Variant v = cells[i];
 				Dictionary cellDictRoot = cells[i];
@@ -83,7 +83,7 @@ bool GridMapExt::_set(const StringName &p_name, const Variant &p_value) {
 				// test data
 				Dictionary dataDict = cell.data;
 				Array allDataKeys = dataDict.keys();
-				for (int k = 0; k < allDataKeys.size(); k++ ) {
+				for (int k = 0; k < allDataKeys.size(); k++) {
 					String keyName = allDataKeys[k];
 					Variant value = dataDict[keyName];
 					if (value.get_type() == Variant::STRING)
@@ -95,9 +95,9 @@ bool GridMapExt::_set(const StringName &p_name, const Variant &p_value) {
 					if (value.get_type() == Variant::INT)
 						String s = value.stringify();
 				}
-					
+
 				cell_map[ik] = cell;
-			} 
+			}
 		}
 
 		_recreate_octant_data();
@@ -337,6 +337,17 @@ Vector3 GridMapExt::get_cell_size() const {
 	return cell_size;
 }
 
+void GridMapExt::set_cell_property(const String &p_prop) {
+	//ERR_FAIL_COND(p_size.x < 0.001 || p_size.y < 0.001 || p_size.z < 0.001);
+	cell_property = p_prop;
+	//_recreate_octant_data();
+	emit_signal(SNAME("cell_property_changed"), cell_property);
+}
+
+String GridMapExt::get_cell_property() const {
+	return cell_property;
+}
+
 void GridMapExt::set_octant_size(int p_size) {
 	ERR_FAIL_COND(p_size == 0);
 	octant_size = p_size;
@@ -452,7 +463,7 @@ void GridMapExt::set_cell_item(const Vector3i &p_position, int p_item, int p_rot
 	c.rot = p_rot;
 	Dictionary dataTest;
 	dataTest["someString"] = "OneTwoThree";
-	dataTest["someInt"] = rand()%1000;
+	dataTest["someInt"] = rand() % 1000;
 	dataTest["someFloat"] = 989.989f;
 	dataTest["someVector3"] = Vector3(100.1f, 200.2f, 300.3f);
 	c.data = dataTest;
@@ -1154,6 +1165,9 @@ void GridMapExt::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_cell_size", "size"), &GridMapExt::set_cell_size);
 	ClassDB::bind_method(D_METHOD("get_cell_size"), &GridMapExt::get_cell_size);
 
+	ClassDB::bind_method(D_METHOD("set_cell_property", "data"), &GridMapExt::set_cell_property);
+	ClassDB::bind_method(D_METHOD("get_cell_property"), &GridMapExt::get_cell_property);
+
 	ClassDB::bind_method(D_METHOD("set_cell_scale", "scale"), &GridMapExt::set_cell_scale);
 	ClassDB::bind_method(D_METHOD("get_cell_scale"), &GridMapExt::get_cell_scale);
 
@@ -1163,7 +1177,7 @@ void GridMapExt::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_cell_item", "position", "item", "orientation"), &GridMapExt::set_cell_item, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("get_cell_item", "position"), &GridMapExt::get_cell_item);
 
-	ClassDB::bind_method(D_METHOD("set_cell_data", "position", "data" ), &GridMapExt::set_cell_data);
+	ClassDB::bind_method(D_METHOD("set_cell_data", "position", "data"), &GridMapExt::set_cell_data);
 	ClassDB::bind_method(D_METHOD("get_cell_data", "position"), &GridMapExt::get_cell_data);
 
 	ClassDB::bind_method(D_METHOD("get_cell_item_orientation", "position"), &GridMapExt::get_cell_item_orientation);
@@ -1205,6 +1219,8 @@ void GridMapExt::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "cell_center_y"), "set_center_y", "get_center_y");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "cell_center_z"), "set_center_z", "get_center_z");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "cell_scale"), "set_cell_scale", "get_cell_scale");
+	ADD_GROUP("Properties", "cell_prop_");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "cell_property", PROPERTY_HINT_NONE, "suffix:m"), "set_cell_property", "get_cell_property");
 	ADD_GROUP("Collision", "collision_");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "collision_layer", PROPERTY_HINT_LAYERS_3D_PHYSICS), "set_collision_layer", "get_collision_layer");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "collision_mask", PROPERTY_HINT_LAYERS_3D_PHYSICS), "set_collision_mask", "get_collision_mask");
@@ -1215,6 +1231,7 @@ void GridMapExt::_bind_methods() {
 	BIND_CONSTANT(INVALID_CELL_ITEM);
 
 	ADD_SIGNAL(MethodInfo("cell_size_changed", PropertyInfo(Variant::VECTOR3, "cell_size")));
+	ADD_SIGNAL(MethodInfo("cell_property_changed", PropertyInfo(Variant::STRING, "cell_property")));
 }
 
 void GridMapExt::set_cell_scale(float p_scale) {
