@@ -41,6 +41,7 @@
 #include "editor/editor_node.h"
 #include "editor/editor_paths.h"
 #include "editor/editor_scale.h"
+#include "scene/resources/image_texture.h"
 
 #include "modules/modules_enabled.gen.h" // For svg and regex.
 #ifdef MODULE_SVG_ENABLED
@@ -1360,7 +1361,7 @@ Error EditorExportPlatformMacOS::export_project(const Ref<EditorExportPreset> &p
 
 	String src_pkg_name;
 
-	EditorProgress ep("export", "Exporting for macOS", 3, true);
+	EditorProgress ep("export", TTR("Exporting for macOS"), 3, true);
 
 	if (p_debug) {
 		src_pkg_name = p_preset->get("custom_template/debug");

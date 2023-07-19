@@ -30,8 +30,10 @@
 
 #include "cpu_particles_2d.h"
 
-#include "core/core_string_names.h"
 #include "scene/2d/gpu_particles_2d.h"
+#include "scene/resources/atlas_texture.h"
+#include "scene/resources/curve_texture.h"
+#include "scene/resources/gradient_texture.h"
 #include "scene/resources/particle_process_material.h"
 #include "scene/scene_string_names.h"
 
@@ -204,13 +206,13 @@ void CPUParticles2D::set_texture(const Ref<Texture2D> &p_texture) {
 	}
 
 	if (texture.is_valid()) {
-		texture->disconnect(CoreStringNames::get_singleton()->changed, callable_mp(this, &CPUParticles2D::_texture_changed));
+		texture->disconnect_changed(callable_mp(this, &CPUParticles2D::_texture_changed));
 	}
 
 	texture = p_texture;
 
 	if (texture.is_valid()) {
-		texture->connect(CoreStringNames::get_singleton()->changed, callable_mp(this, &CPUParticles2D::_texture_changed));
+		texture->connect_changed(callable_mp(this, &CPUParticles2D::_texture_changed));
 	}
 
 	queue_redraw();
