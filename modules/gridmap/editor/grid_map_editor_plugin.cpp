@@ -398,6 +398,7 @@ bool GridMapEditor::do_input_action(Camera3D *p_camera, const Point2 &p_point, b
 
 	Vector3i cellVec3{ cell[0], cell[1], cell[2] };
 	node->set_cell_coords(cellVec3);
+	node->set_cursor_item_id(selected_palette);
 
 	RS::get_singleton()->instance_set_transform(grid_instance[edit_axis], node->get_global_transform() * edit_grid_xform);
 

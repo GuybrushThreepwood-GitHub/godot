@@ -2860,6 +2860,13 @@ void Node3DEditorViewport::_notification(int p_what) {
 				if (selected_gridmap) {
 					Vector3i coords = selected_gridmap->get_cell_coords();
 					int basisIdx = selected_gridmap->get_cursor_rot();
+
+					int placedId = selected_gridmap->get_cell_item(selected_gridmap->local_to_map(coords));
+					int itemId = selected_gridmap->get_cursor_item_id();
+
+										text += vformat(TTR("Placed Item Id: %d\n"), placedId);
+					text += vformat(TTR("Cursor Item Id: %d\n"), itemId);
+					text += "\n";
 					text += vformat(TTR("Cursor X: %d\n"), coords.x);
 					text += vformat(TTR("Cursor Y: %d\n"), coords.y);
 					text += vformat(TTR("Cursor Z: %d\n"), coords.z);

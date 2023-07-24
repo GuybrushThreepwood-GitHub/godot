@@ -516,6 +516,14 @@ unsigned int GridMap::get_cursor_rot() const {
 	return cell_rot;
 }
 
+void GridMap::set_cursor_item_id(int itemId) {
+	cell_cursor_id = itemId;
+}
+
+int GridMap::get_cursor_item_id() const {
+	return cell_cursor_id;
+}
+
 Vector3i GridMap::local_to_map(const Vector3 &p_world_position) const {
 	Vector3 map_position = (p_world_position / cell_size).floor();
 	return Vector3i(map_position);

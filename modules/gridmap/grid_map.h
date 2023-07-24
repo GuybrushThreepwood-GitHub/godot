@@ -169,6 +169,7 @@ class GridMap : public Node3D {
 
 	Vector3i cell_coords = Vector3(0, 0, 0);
 	unsigned int cell_rot = -1;
+	int cell_cursor_id = -1;
 
 	bool recreating_octants = false;
 
@@ -289,6 +290,9 @@ public:
 
 	void set_cursor_rot(unsigned int basisIdx);
 	unsigned int get_cursor_rot() const;
+
+	void set_cursor_item_id(int itemId);
+	int get_cursor_item_id() const;
 
 	Vector3i local_to_map(const Vector3 &p_local_position) const;
 	Vector3 map_to_local(const Vector3i &p_map_position) const;
