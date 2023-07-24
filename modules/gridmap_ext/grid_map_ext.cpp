@@ -312,11 +312,11 @@ RID GridMapExt::get_navigation_map() const {
 
 void GridMapExt::set_mesh_library(const Ref<MeshLibrary> &p_mesh_library) {
 	if (!mesh_library.is_null()) {
-		mesh_library->unregister_owner(this);
+		mesh_library->disconnect_changed(callable_mp(this, &GridMapExt::_recreate_octant_data));
 	}
 	mesh_library = p_mesh_library;
 	if (!mesh_library.is_null()) {
-		mesh_library->register_owner(this);
+		mesh_library->connect_changed(callable_mp(this, &GridMapExt::_recreate_octant_data));
 	}
 
 	_recreate_octant_data();
@@ -1449,10 +1449,6 @@ void GridMapExt::_navigation_map_changed(RID p_map) {
 #endif // DEBUG_ENABLED
 
 GridMapExt::~GridMapExt() {
-	if (!mesh_library.is_null()) {
-		mesh_library->unregister_owner(this);
-	}
-
 	clear();
 #ifdef DEBUG_ENABLED
 	NavigationServer3D::get_singleton()->disconnect("map_changed", callable_mp(this, &GridMapExt::_navigation_map_changed));

@@ -93,6 +93,8 @@
 #include "scene/resources/sky_material.h"
 #include "scene/resources/surface_tool.h"
 
+#include "modules/gridmap/grid_map.h"
+
 constexpr real_t DISTANCE_DEFAULT = 4;
 
 constexpr real_t GIZMO_ARROW_SIZE = 0.35;
@@ -2748,6 +2750,13 @@ void Node3DEditorViewport::_notification(int p_what) {
 					continue;
 				}
 
+				if (sp->is_class("GridMap")) {
+					// enable the gridmap info
+					selected_gridmap = Object::cast_to<GridMap>(E.key);
+				} else {
+					selected_gridmap = nullptr;
+				}
+
 				Node3DEditorSelectedItem *se = editor_selection->get_node_editor_data<Node3DEditorSelectedItem>(sp);
 				if (!se) {
 					continue;
@@ -2762,6 +2771,7 @@ void Node3DEditorViewport::_notification(int p_what) {
 					continue;
 				}
 				changed = true;
+
 				se->last_xform_dirty = false;
 				se->last_xform = t;
 
@@ -2812,6 +2822,11 @@ void Node3DEditorViewport::_notification(int p_what) {
 				info_label->set_visible(show_info);
 			}
 
+			bool show_gm_info = view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_GRIDMAP_INFO));
+			if (show_gm_info != gridmap_label->is_visible()) {
+				gridmap_label->set_visible(show_gm_info);
+			}
+
 			Camera3D *current_camera;
 
 			if (previewing) {
@@ -2838,6 +2853,23 @@ void Node3DEditorViewport::_notification(int p_what) {
 				text += vformat(TTR("Draw Calls: %d"), viewport->get_render_info(Viewport::RENDER_INFO_TYPE_VISIBLE, Viewport::RENDER_INFO_DRAW_CALLS_IN_FRAME));
 
 				info_label->set_text(text);
+			}
+
+			if (show_gm_info) {
+				String text;
+				if (selected_gridmap) {
+					Vector3i coords = selected_gridmap->get_cell_coords();
+					int basisIdx = selected_gridmap->get_cursor_rot();
+					text += vformat(TTR("Cursor X: %d\n"), coords.x);
+					text += vformat(TTR("Cursor Y: %d\n"), coords.y);
+					text += vformat(TTR("Cursor Z: %d\n"), coords.z);
+					text += "\n";
+					text += vformat(TTR("Basis Idx: %d\n"), basisIdx);
+					//text += vformat(TTR("Rot X: %s\n"), rtos(current_camera->get_position().x).pad_decimals(1));
+					//text += vformat(TTR("Rot Y: %s\n"), rtos(current_camera->get_position().y).pad_decimals(1));
+					//text += vformat(TTR("Rot Z: %s\n"), rtos(current_camera->get_position().z).pad_decimals(1));
+				}
+				gridmap_label->set_text(text);
 			}
 
 			// FPS Counter.
@@ -2971,6 +3003,8 @@ void Node3DEditorViewport::_notification(int p_what) {
 			fps_label->add_theme_style_override("normal", gui_base->get_theme_stylebox(SNAME("Information3dViewport"), SNAME("EditorStyles")));
 			cinema_label->add_theme_style_override("normal", gui_base->get_theme_stylebox(SNAME("Information3dViewport"), SNAME("EditorStyles")));
 			locked_label->add_theme_style_override("normal", gui_base->get_theme_stylebox(SNAME("Information3dViewport"), SNAME("EditorStyles")));
+
+			gridmap_label->add_theme_style_override("normal", gui_base->get_theme_stylebox(SNAME("Information3dViewport"), SNAME("EditorStyles")));
 		} break;
 
 		case NOTIFICATION_DRAG_END: {
@@ -3401,6 +3435,12 @@ void Node3DEditorViewport::_menu_option(int p_option) {
 		} break;
 		case VIEW_INFORMATION: {
 			int idx = view_menu->get_popup()->get_item_index(VIEW_INFORMATION);
+			bool current = view_menu->get_popup()->is_item_checked(idx);
+			view_menu->get_popup()->set_item_checked(idx, !current);
+
+		} break;
+		case VIEW_GRIDMAP_INFO: {
+			int idx = view_menu->get_popup()->get_item_index(VIEW_GRIDMAP_INFO);
 			bool current = view_menu->get_popup()->is_item_checked(idx);
 			view_menu->get_popup()->set_item_checked(idx, !current);
 
@@ -3867,6 +3907,15 @@ void Node3DEditorViewport::set_state(const Dictionary &p_state) {
 			_menu_option(VIEW_FRAME_TIME);
 		}
 	}
+	if (p_state.has("gm_info")) {
+		bool gm_info = p_state["gm_info"];
+
+		int idx = view_menu->get_popup()->get_item_index(VIEW_GRIDMAP_INFO);
+		if (view_menu->get_popup()->is_item_checked(idx) != gm_info) {
+			_menu_option(VIEW_GRIDMAP_INFO);
+		}
+	}
+
 	if (p_state.has("half_res")) {
 		bool half_res = p_state["half_res"];
 
@@ -3931,6 +3980,7 @@ Dictionary Node3DEditorViewport::get_state() const {
 	d["gizmos"] = view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_GIZMOS));
 	d["information"] = view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_INFORMATION));
 	d["frame_time"] = view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_FRAME_TIME));
+	d["gm_info"] = view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_GRIDMAP_INFO));
 	d["half_res"] = subviewport_container->get_stretch_shrink() > 1;
 	d["cinematic_preview"] = view_menu->get_popup()->is_item_checked(view_menu->get_popup()->get_item_index(VIEW_CINEMATIC_PREVIEW));
 	if (previewing) {
@@ -5078,6 +5128,9 @@ Node3DEditorViewport::Node3DEditorViewport(Node3DEditor *p_spatial_editor, int p
 	view_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("spatial_editor/view_gizmos", TTR("View Gizmos")), VIEW_GIZMOS);
 	view_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("spatial_editor/view_information", TTR("View Information")), VIEW_INFORMATION);
 	view_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("spatial_editor/view_fps", TTR("View Frame Time")), VIEW_FRAME_TIME);
+
+	view_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("spatial_editor/gridmap_information", TTR("GridMap Information")), VIEW_GRIDMAP_INFO);
+
 	view_menu->get_popup()->set_item_checked(view_menu->get_popup()->get_item_index(VIEW_ENVIRONMENT), true);
 	view_menu->get_popup()->add_separator();
 	view_menu->get_popup()->add_check_shortcut(ED_SHORTCUT("spatial_editor/view_half_resolution", TTR("Half Resolution")), VIEW_HALF_RESOLUTION);
@@ -5167,6 +5220,17 @@ Node3DEditorViewport::Node3DEditorViewport(Node3DEditor *p_spatial_editor, int p
 	info_label->set_v_grow_direction(GROW_DIRECTION_BEGIN);
 	surface->add_child(info_label);
 	info_label->hide();
+
+	// GRID MAP
+	gridmap_label = memnew(Label);
+	gridmap_label->set_anchor_and_offset(SIDE_LEFT, ANCHOR_BEGIN, 10 * EDSCALE);
+	gridmap_label->set_anchor_and_offset(SIDE_TOP, ANCHOR_END, -90 * EDSCALE);
+	gridmap_label->set_anchor_and_offset(SIDE_RIGHT, ANCHOR_BEGIN, 90 * EDSCALE);
+	gridmap_label->set_anchor_and_offset(SIDE_BOTTOM, ANCHOR_END, -10 * EDSCALE);
+	gridmap_label->set_h_grow_direction(GROW_DIRECTION_END);
+	gridmap_label->set_v_grow_direction(GROW_DIRECTION_BEGIN);
+	surface->add_child(gridmap_label);
+	gridmap_label->hide();
 
 	cinema_label = memnew(Label);
 	cinema_label->set_anchor_and_offset(SIDE_TOP, ANCHOR_BEGIN, 10 * EDSCALE);

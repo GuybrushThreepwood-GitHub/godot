@@ -103,6 +103,8 @@ void GridMapEditor::_menu_option(int p_option) {
 			r = node->get_basis_with_orthogonal_index(cursor_rot);
 			r.rotate(Vector3(0, 1, 0), -Math_PI / 2.0);
 			cursor_rot = node->get_orthogonal_index_from_basis(r);
+
+			node->set_cursor_rot(cursor_rot);
 			_update_cursor_transform();
 		} break;
 		case MENU_OPTION_CURSOR_ROTATE_X: {
@@ -118,6 +120,8 @@ void GridMapEditor::_menu_option(int p_option) {
 			r = node->get_basis_with_orthogonal_index(cursor_rot);
 			r.rotate(Vector3(1, 0, 0), -Math_PI / 2.0);
 			cursor_rot = node->get_orthogonal_index_from_basis(r);
+
+			node->set_cursor_rot(cursor_rot);
 			_update_cursor_transform();
 		} break;
 		case MENU_OPTION_CURSOR_ROTATE_Z: {
@@ -133,6 +137,8 @@ void GridMapEditor::_menu_option(int p_option) {
 			r = node->get_basis_with_orthogonal_index(cursor_rot);
 			r.rotate(Vector3(0, 0, 1), -Math_PI / 2.0);
 			cursor_rot = node->get_orthogonal_index_from_basis(r);
+
+			node->set_cursor_rot(cursor_rot);
 			_update_cursor_transform();
 		} break;
 		case MENU_OPTION_CURSOR_BACK_ROTATE_Y: {
@@ -389,6 +395,9 @@ bool GridMapEditor::do_input_action(Camera3D *p_camera, const Point2 &p_point, b
 			grid_ofs[i] = cell[i] * cell_size[i];
 		}
 	}
+
+	Vector3i cellVec3{ cell[0], cell[1], cell[2] };
+	node->set_cell_coords(cellVec3);
 
 	RS::get_singleton()->instance_set_transform(grid_instance[edit_axis], node->get_global_transform() * edit_grid_xform);
 

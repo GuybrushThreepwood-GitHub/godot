@@ -167,6 +167,9 @@ class GridMap : public Node3D {
 	bool center_z = true;
 	float cell_scale = 1.0;
 
+	Vector3i cell_coords = Vector3(0, 0, 0);
+	unsigned int cell_rot = -1;
+
 	bool recreating_octants = false;
 
 	Ref<MeshLibrary> mesh_library;
@@ -280,6 +283,12 @@ public:
 	Basis get_cell_item_basis(const Vector3i &p_position) const;
 	Basis get_basis_with_orthogonal_index(int p_index) const;
 	int get_orthogonal_index_from_basis(const Basis &p_basis) const;
+
+	void set_cell_coords(const Vector3i &p_position);
+	Vector3i get_cell_coords() const;
+
+	void set_cursor_rot(unsigned int basisIdx);
+	unsigned int get_cursor_rot() const;
 
 	Vector3i local_to_map(const Vector3 &p_local_position) const;
 	Vector3 map_to_local(const Vector3i &p_map_position) const;

@@ -501,6 +501,21 @@ int GridMap::get_orthogonal_index_from_basis(const Basis &p_basis) const {
 	return 0;
 }
 
+void GridMap::set_cell_coords(const Vector3i &p_position) {
+	cell_coords = p_position;
+}
+
+Vector3i GridMap::get_cell_coords() const {
+	return cell_coords;
+}
+
+void GridMap::set_cursor_rot(unsigned int basisIdx) {
+	cell_rot = basisIdx;
+}
+unsigned int GridMap::get_cursor_rot() const {
+	return cell_rot;
+}
+
 Vector3i GridMap::local_to_map(const Vector3 &p_world_position) const {
 	Vector3 map_position = (p_world_position / cell_size).floor();
 	return Vector3i(map_position);

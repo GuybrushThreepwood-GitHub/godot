@@ -59,6 +59,7 @@ class SubViewportContainer;
 class VSplitContainer;
 class WorldEnvironment;
 class ViewportNavigationControl;
+class GridMap;
 
 class ViewportRotationControl : public Control {
 	GDCLASS(ViewportRotationControl, Control);
@@ -125,6 +126,8 @@ class Node3DEditorViewport : public Control {
 		VIEW_GIZMOS,
 		VIEW_INFORMATION,
 		VIEW_FRAME_TIME,
+
+		VIEW_GRIDMAP_INFO,
 
 		// < Keep in sync with menu.
 		VIEW_DISPLAY_NORMAL,
@@ -256,6 +259,8 @@ private:
 	Label *gpu_time_label = nullptr;
 	Label *fps_label = nullptr;
 
+	Label *gridmap_label = nullptr;
+	GridMap *selected_gridmap = nullptr;
 	struct _RayResult {
 		Node3D *item = nullptr;
 		real_t depth = 0;
