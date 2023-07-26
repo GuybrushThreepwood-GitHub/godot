@@ -34,6 +34,7 @@
 
 #include "core/input/input.h"
 #include "core/os/keyboard.h"
+#include "core/variant/typed_array.h"
 #include "editor/editor_node.h"
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
@@ -237,6 +238,20 @@ void GridMapEditor::_menu_option(int p_option) {
 
 			_fill_selection();
 
+		} break;
+		case MENU_OPTION_CLEAR_GRIDMAP: {
+			EditorUndoRedoManager *undo_redo = EditorUndoRedoManager::get_singleton();
+			undo_redo->create_action(TTR("GridMap Clear All"));
+
+			Array cells_used = node->get_used_cells();
+			for (int32_t idx = 0; idx < cells_used.size(); idx++) {
+				Vector3i c = cells_used[idx];
+				undo_redo->add_do_method(node, "clear_all_items");
+				undo_redo->add_undo_method(node, "set_cell_item", c, node->get_cell_item(c), node->get_cell_item_orientation(c));
+			}
+			undo_redo->commit_action();
+
+			node->clear_all_items();
 		} break;
 		case MENU_OPTION_GRIDMAP_SETTINGS: {
 			settings_dialog->popup_centered(settings_vbc->get_combined_minimum_size() + Size2(50, 50) * EDSCALE);
@@ -1219,6 +1234,9 @@ GridMapEditor::GridMapEditor() {
 	options->get_popup()->add_item(TTR("Cut Selection"), MENU_OPTION_SELECTION_CUT, KeyModifierMask::CTRL + Key::X);
 	options->get_popup()->add_item(TTR("Clear Selection"), MENU_OPTION_SELECTION_CLEAR, Key::KEY_DELETE);
 	options->get_popup()->add_item(TTR("Fill Selection"), MENU_OPTION_SELECTION_FILL, KeyModifierMask::CTRL + Key::F);
+
+	options->get_popup()->add_separator();
+	options->get_popup()->add_item(TTR("Clear All"), MENU_OPTION_CLEAR_GRIDMAP);
 
 	options->get_popup()->add_separator();
 	options->get_popup()->add_item(TTR("Settings..."), MENU_OPTION_GRIDMAP_SETTINGS);

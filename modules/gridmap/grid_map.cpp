@@ -1023,6 +1023,15 @@ void GridMap::_clear_internal() {
 	cell_map.clear();
 }
 
+void GridMap::clear_all_items() {
+	_clear_internal();
+
+	if (baked_meshes.size() && !recreating_octants) {
+		clear_baked_meshes();
+		_recreate_octant_data();
+	}
+}
+
 void GridMap::clear() {
 	_clear_internal();
 	clear_baked_meshes();
@@ -1114,6 +1123,7 @@ void GridMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_center_z", "enable"), &GridMap::set_center_z);
 	ClassDB::bind_method(D_METHOD("get_center_z"), &GridMap::get_center_z);
 
+	ClassDB::bind_method(D_METHOD("clear_all_items"), &GridMap::clear_all_items);
 	ClassDB::bind_method(D_METHOD("clear"), &GridMap::clear);
 
 	ClassDB::bind_method(D_METHOD("get_used_cells"), &GridMap::get_used_cells);

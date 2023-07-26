@@ -308,6 +308,7 @@ public:
 	void clear_baked_meshes();
 	void make_baked_meshes(bool p_gen_lightmap_uv = false, float p_lightmap_uv_texel_size = 0.1);
 
+	void clear_all_items();
 	void clear();
 
 	Array get_bake_meshes();
