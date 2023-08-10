@@ -722,16 +722,9 @@ void RenderForwardMobile::_render_scene(RenderDataRD *p_render_data, const Color
 			using_subpass_post_process = false;
 		}
 
-		// We do this last because our get_color_fbs creates and caches the framebuffer if we need it.
-		RID four_subpasses = rb_data->get_color_fbs(RenderBufferDataForwardMobile::FB_CONFIG_FOUR_SUBPASSES);
-		if (using_subpass_post_process && four_subpasses.is_null()) {
-			// can't do blit subpass because we don't have all subpasses
-			using_subpass_post_process = false;
-		}
-
 		if (using_subpass_post_process) {
 			// all as subpasses
-			framebuffer = four_subpasses;
+			framebuffer = rb_data->get_color_fbs(RenderBufferDataForwardMobile::FB_CONFIG_FOUR_SUBPASSES);
 		} else if (using_subpass_transparent) {
 			// our tonemap pass is separate
 			framebuffer = rb_data->get_color_fbs(RenderBufferDataForwardMobile::FB_CONFIG_THREE_SUBPASSES);
@@ -781,24 +774,20 @@ void RenderForwardMobile::_render_scene(RenderDataRD *p_render_data, const Color
 				clear_color.r *= bg_energy_multiplier;
 				clear_color.g *= bg_energy_multiplier;
 				clear_color.b *= bg_energy_multiplier;
-				/*
-				if (p_render_data->render_buffers->has_custom_data(RB_SCOPE_FOG) || environment_get_fog_enabled(p_render_data->environment)) {
+				if (environment_get_fog_enabled(p_render_data->environment)) {
 					draw_sky_fog_only = true;
 					RendererRD::MaterialStorage::get_singleton()->material_set_param(sky.sky_scene_state.fog_material, "clear_color", Variant(clear_color.srgb_to_linear()));
 				}
-				*/
 			} break;
 			case RS::ENV_BG_COLOR: {
 				clear_color = environment_get_bg_color(p_render_data->environment);
 				clear_color.r *= bg_energy_multiplier;
 				clear_color.g *= bg_energy_multiplier;
 				clear_color.b *= bg_energy_multiplier;
-				/*
-				if (p_render_data->render_buffers->has_custom_data(RB_SCOPE_FOG) || environment_get_fog_enabled(p_render_data->environment)) {
+				if (environment_get_fog_enabled(p_render_data->environment)) {
 					draw_sky_fog_only = true;
 					RendererRD::MaterialStorage::get_singleton()->material_set_param(sky.sky_scene_state.fog_material, "clear_color", Variant(clear_color.srgb_to_linear()));
 				}
-				*/
 			} break;
 			case RS::ENV_BG_SKY: {
 				draw_sky = true;
@@ -807,7 +796,8 @@ void RenderForwardMobile::_render_scene(RenderDataRD *p_render_data, const Color
 				if (rb_data.is_valid()) {
 					RID dest_framebuffer = rb_data->get_color_fbs(RenderBufferDataForwardMobile::FB_CONFIG_ONE_PASS);
 					RID texture = RendererRD::TextureStorage::get_singleton()->render_target_get_rd_texture(rb->get_render_target());
-					copy_effects->copy_to_fb_rect(texture, dest_framebuffer, Rect2i(), false, false, false, false, RID(), false, false, true);
+					bool convert_to_linear = !RendererRD::TextureStorage::get_singleton()->render_target_is_using_hdr(rb->get_render_target());
+					copy_effects->copy_to_fb_rect(texture, dest_framebuffer, Rect2i(), false, false, false, false, RID(), false, false, convert_to_linear);
 				}
 				keep_color = true;
 			} break;
@@ -908,13 +898,19 @@ void RenderForwardMobile::_render_scene(RenderDataRD *p_render_data, const Color
 		{
 			// regular forward for now
 			Vector<Color> c;
-			c.push_back(clear_color.srgb_to_linear()); // our render buffer
-			if (rb_data.is_valid()) {
-				if (p_render_data->render_buffers->get_msaa_3d() != RS::VIEWPORT_MSAA_DISABLED) {
-					c.push_back(clear_color.srgb_to_linear()); // our resolve buffer
+			{
+				Color cc = clear_color.srgb_to_linear();
+				if (rb_data.is_valid()) {
+					cc.a = 0; // For transparent viewport backgrounds.
 				}
-				if (using_subpass_post_process) {
-					c.push_back(Color()); // our 2D buffer we're copying into
+				c.push_back(cc); // Our render buffer.
+				if (rb_data.is_valid()) {
+					if (p_render_data->render_buffers->get_msaa_3d() != RS::VIEWPORT_MSAA_DISABLED) {
+						c.push_back(clear_color.srgb_to_linear()); // Our resolve buffer.
+					}
+					if (using_subpass_post_process) {
+						c.push_back(Color()); // Our 2D buffer we're copying into.
+					}
 				}
 			}
 
