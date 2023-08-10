@@ -1158,6 +1158,23 @@ void GridMapEditor::_item_selected_cbk(int idx) {
 	_update_cursor_instance();
 }
 
+void GridMapEditor::_clear_floor_pressed() {
+	int currentAxis = edit_floor[edit_axis];
+
+	Array all_cells_used = node->get_used_cells();
+	Array cell_used_axis;
+	for (int32_t idx = 0; idx < all_cells_used.size(); idx++) {
+		Vector3i c = all_cells_used[idx];
+
+		if (c.y == currentAxis)
+			cell_used_axis.push_back(c);
+	}
+
+	for (int32_t idx = 0; idx < cell_used_axis.size(); idx++) {
+		node->set_cell_item(cell_used_axis[idx], -1, 0);
+	}
+}
+
 void GridMapEditor::_floor_changed(float p_value) {
 	if (updating) {
 		return;
@@ -1203,6 +1220,11 @@ GridMapEditor::GridMapEditor() {
 	floor->connect("value_changed", callable_mp(this, &GridMapEditor::_floor_changed));
 	floor->connect("mouse_exited", callable_mp(this, &GridMapEditor::_floor_mouse_exited));
 	floor->get_line_edit()->connect("mouse_exited", callable_mp(this, &GridMapEditor::_floor_mouse_exited));
+
+	clear_floor_button = memnew(MenuButton);
+	clear_floor_button->set_text(TTR("Clear Current Floor"));
+	clear_floor_button->connect("pressed", callable_mp(this, &GridMapEditor::_clear_floor_pressed));
+	spatial_editor_hb->add_child(clear_floor_button);
 
 	spatial_editor_hb->add_child(memnew(VSeparator));
 

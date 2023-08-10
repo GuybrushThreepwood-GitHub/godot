@@ -68,6 +68,7 @@ class GridMapEditor : public VBoxContainer {
 
 	InputAction input_action = INPUT_NONE;
 	Panel *panel = nullptr;
+	MenuButton *clear_floor_button = nullptr;
 	MenuButton *options = nullptr;
 	SpinBox *floor = nullptr;
 	double accumulated_floor_delta = 0.0;
@@ -212,6 +213,7 @@ class GridMapEditor : public VBoxContainer {
 	void _validate_selection();
 	void _set_selection(bool p_active, const Vector3 &p_begin = Vector3(), const Vector3 &p_end = Vector3());
 
+	void _clear_floor_pressed();
 	void _floor_changed(float p_value);
 	void _floor_mouse_exited();
 
