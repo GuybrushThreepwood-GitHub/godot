@@ -1462,6 +1462,7 @@ GridMapEditor::GridMapEditor() {
 		inner_mat.instantiate();
 		inner_mat->set_albedo(Color(0.7, 0.7, 1.0, 0.2));
 		inner_mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
+		inner_mat->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
 		inner_mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
 
 		d[RS::ARRAY_VERTEX] = triangles;
@@ -1474,11 +1475,13 @@ GridMapEditor::GridMapEditor() {
 
 		outer_mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
 		outer_mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
+		outer_mat->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
 
 		selection_floor_mat.instantiate();
 		selection_floor_mat->set_albedo(Color(0.80, 0.80, 1.0, 1));
 		selection_floor_mat->set_on_top_of_alpha();
 		selection_floor_mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
+		selection_floor_mat->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
 
 		d[RS::ARRAY_VERTEX] = lines;
 		RenderingServer::get_singleton()->mesh_add_surface_from_arrays(selection_mesh, RS::PRIMITIVE_LINES, d);
@@ -1507,6 +1510,7 @@ GridMapEditor::GridMapEditor() {
 	indicator_mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
 	indicator_mat->set_flag(StandardMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
 	indicator_mat->set_flag(StandardMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+	indicator_mat->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
 	indicator_mat->set_albedo(Color(0.8, 0.5, 0.1));
 }
 
